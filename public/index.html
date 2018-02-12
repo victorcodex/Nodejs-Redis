@@ -1,0 +1,123 @@
+<html>
+<head>
+	<title>REDIS TEST</title>
+</head>
+<body>
+	GET /users - List All Users <br /> 
+	GET /users/:id - Get Single user details <br /> 
+	POST /users - Create New User Entry <br /> 
+	PUT /users/:id - Update User details <br /> 
+	Delete /users/:id - Delete User Entry
+	
+	<div style="padding: 20px;" id="msg"></div>
+	<fieldset style="padding: 20px; margin: 20px;"><legend>Add User</legend>
+		<input type="text" id="name" placeholder="name" /> <br />
+		<input type="text" id="email" placeholder="email" /> <br />
+		<input type="text" id="phone" placeholder="phone" />
+		<button id="add">Add Record</button>
+	</fieldset>
+	
+	<fieldset style="padding: 20px; margin: 20px;"><legend>Edit User</legend>
+		<input type="text" id="userid" placeholder="Enter Userid then click Fetch User"/> <button id="fetch">Fetch User</button> <br />
+		<input type="text" id="uname" placeholder="name" /> <br />
+		<input type="text" id="uemail" placeholder="email" /> <br />
+		<input type="text" id="uphone" placeholder="phone" />
+		<button id="update">Update User</button>
+	</fieldset>
+	
+	<fieldset style="padding: 20px; margin: 20px;"><legend>List Users</legend>
+		<div id="list">
+		
+		</div>
+	</fieldset>
+	<script src="jquery.js"></script>
+	<script>
+		msg = document.getElementById("msg");
+		function addUser(){
+			
+			var data = { name: $('#name').val(), email: $('#email').val(), phone: $('#phone').val()};
+			if(data.name == "" || data.email == "" || data.phone == ""){
+				msg.innerHTML = "Enter all fields"; return;
+			}
+			$.post('/users', data, function(rt){
+				if(rt.status == 200){ msg.innerHTML = "new user added"; listUsers(); }
+				else{ msg.innerHTML = js.message; }
+			});
+		}
+		
+		function updateUser(){
+			var data = { name: $('#uname').val(), email: $('#uemail').val(), phone: $('#uphone').val()};
+			if(data.name == "" || data.email == "" || data.phone == ""){
+				msg.innerHTML = "Enter all fields"; return;
+			}
+			$.ajax({
+				url: '/users/' + $('#userid').val(),
+				type: 'PUT',
+				data: data,
+				success: function(result) {
+					var js = result; //JSON.parse(result);
+					if(js.status == 200){ msg.innerHTML = "User updated"; listUsers(); }
+					else{ msg.innerHTML = js.message; }
+				}
+			});
+		}
+		
+		function getUser(){
+			var id = $('#userid').val();
+			if(id == ""){ msg.innerHTML = "Enter a valid id"; return; }
+			msg.innerHTML = "Loading User";
+			$.get('/users/' + id, function(data){
+				if(data.name){
+					msg.innerHTML = "User found";
+					$('#uname').val( data.name );
+					$('#uemail').val( data.email );
+					$('#uphone').val( data.phone );
+				}else{
+					msg.innerHTML = "User not found";
+				}
+			});
+		}
+		
+		function deleteUser(event){
+			event.preventDefault();
+			var a = event.target;
+			
+			var id = a.getAttribute('data-id');
+			msg.innerHTML = "Deleting user ...";
+			$.ajax({
+				url: '/users/' + id,
+				type: 'DELETE',
+				success: function(result) {
+					var js = result; //JSON.parse(result);
+					if(js.status == 200){ msg.innerHTML = "User Deleted"; listUsers(); }
+					else{ msg.innerHTML = js.message; }
+				}
+			});
+			
+		}
+		
+		function listUsers(){
+			var div = document.getElementById("list");
+			div.innerHTML = "";
+			$.get('/users', function(data){
+				if(data.length > 0){
+					for(i in data){
+						var user = data[i];
+						var row = "<pre>" + JSON.stringify(user, null, '\t') + "</pre> <a href='#' class='del' data-id='"+ user.id +"'>delete user </a>";
+						div.innerHTML += row;
+					}
+				}
+			});
+		}
+		
+		$(document).ready(function(){
+			$('#add').click( addUser );
+			$('#update').click( updateUser );
+			$('#fetch').click( getUser );
+			listUsers();
+			
+			$(document).on('click', '.del', deleteUser);
+		});
+	</script>
+</body>
+</html>
